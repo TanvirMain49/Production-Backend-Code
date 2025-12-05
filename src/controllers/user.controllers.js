@@ -7,7 +7,7 @@ import { uploadCloudinary } from "../utils/cloudinary.js";
 
 const generateAccessTokenAndRefreshToken = async(UserId) =>{
     try {
-        const user = await User.findOne(UserId);
+        const user = await User.findById(UserId);
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
