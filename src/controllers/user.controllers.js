@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {User} from "../models/user.models.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 
 const generateAccessTokenAndRefreshToken = async(UserId) =>{
@@ -90,12 +91,15 @@ const loginUser = asyncHandler(async (req, res)=>{
     */
 
     const {email, userName, password} = req.body;
+
+    // console.log(email, userName, password);
+
     if(!userName && !email){
         throw new ApiError(400, "required userName or email")
     }
 
     const user = await User.findOne({
-        $or:[{userName}, {email}]
+        $or:[{userName: userName.toLowerCase()}, {email}]
     })
 
     if(!user){
@@ -137,14 +141,23 @@ const loginUser = asyncHandler(async (req, res)=>{
 const logoutUser = asyncHandler(async (req, res)=>{
     const userId = req.user._id;
 
-    await User.findByIdAndUpdate(userId, 
+    const user = await User.findByIdAndUpdate(userId, 
         {
-            $set: { refreshToken: undefined }
+            /*It literally sets the field value to undefined in the document, 
+            but MongoDB does not store undefined → it keeps the old value. 
+
+            Code:
+            $set: { refreshToken: undefined }*/
+            
+            //This tells MongoDB to delete that field, not "set it to undefined".
+            $unset:{refreshToken: 1}
         },
         {
             new: true
         }
     )
+
+    console.log("User: ", user);
 
     const options = {
         httpOnly: true,
@@ -159,4 +172,44 @@ const logoutUser = asyncHandler(async (req, res)=>{
     .json( new ApiResponse(200, {}, "User logged out successfully!") )
 })
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res)=>{
+    const incomingRefreshToken =  req.cookie?.refreshToken || req.body.refreshToken;
+
+    if(!incomingRefreshToken){
+        throw new ApiError(401, "Unauthorize access");
+    }
+
+    try {
+        const decodedToken =  jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        const user = await User.findById(decodedToken?._id);
+        if(!user){
+            throw new ApiError(401, "Invalid refreshToken")
+        }
+
+        if(incomingRefreshToken !== user?.refreshToken){
+            throw new ApiError(401, "Refresh token is expired");
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict"
+        }
+
+        const {accessToken, newRefreshToken} =await generateAccessTokenAndRefreshToken(user?._id);
+
+        res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(
+            new ApiResponse(200, {accessToken, refreshToken: newRefreshToken}, "Access token refreshed")
+        )
+
+    } catch (error) {
+        
+    }
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
