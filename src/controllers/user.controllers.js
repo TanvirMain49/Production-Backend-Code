@@ -354,7 +354,7 @@ const updateCoverImage = asyncHandler(async(req, res)=>{
 const getChannelProfile = asyncHandler(async(req, res)=>{
   const {userName} = req.params;
 
-  if(!userName.trim()){
+  if(!userName || !userName.trim()){
     throw new ApiError(400, "User name is required");
   }
 
