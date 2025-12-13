@@ -306,6 +306,8 @@ const updateAvatar = asyncHandler(async(req, res)=>{
         throw new ApiError(400, "Error while uploading avatar.");
     }
 
+    // TODO: delete old photo from cloudinary
+
     const updatedUser = await User.findByIdAndUpdate(
         req.user?._id ,
         {
@@ -349,6 +351,76 @@ const updateCoverImage = asyncHandler(async(req, res)=>{
     .json(new ApiResponse(200, updatedUser, "Cover image updated successfully"));
 })
 
+const getChannelProfile = asyncHandler(async(req, res)=>{
+  const {userName} = req.params;
+
+  if(!userName.trim()){
+    throw new ApiError(400, "User name is required");
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match: {
+        userName: userName.toLowerCase()
+      }
+    },
+    {
+      $lookup:{
+        from: "subscriptions",
+        localField:"_id",
+        foreignField:"channel",
+        as:"subscribers"
+      }
+    },
+    {
+      $lookup:{
+        from: "subscriptions",
+        localField:"_id",
+        foreignField:"subscriber",
+        as:"subscribedTo"
+      }
+    },
+    {
+      $addFields:{
+        SubscriberCount: {
+          $size: "$subscribers"
+        },
+        SubscriptedToCount: {
+          $size: "$subscribedTo"
+        },
+        isSubscripted: {
+          $cond: {
+            if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+    {
+      $project:{
+        userName: 1,
+        email: 1,
+        fullName: 1,
+        avatar: 1,
+        coverImage: 1,
+        SubscriberCount: 1,
+        SubscriptedToCount: 1,
+        isSubscripted: 1
+      }
+    }
+  ])
+
+  if(!channel?.length){
+    throw new ApiError(404, "Channel dose not exist");
+  }
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, channel[0], "User channel fetched successfully"))
+
+})
+
 export { 
     registerUser,
     loginUser, 
@@ -358,5 +430,6 @@ export {
     getCurrentUser, 
     updateAccount,
     updateAvatar,
-    updateCoverImage
+    updateCoverImage,
+    getChannelProfile
 };
