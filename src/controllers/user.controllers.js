@@ -5,6 +5,7 @@ import { User } from "../models/user.models.js";
 import { uploadCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import logger from "../utils/logger/index.logger.js";
 
 const generateAccessTokenAndRefreshToken = async (UserId) => {
   try {
@@ -27,6 +28,8 @@ const generateAccessTokenAndRefreshToken = async (UserId) => {
 const registerUser = asyncHandler(async (req, res) => {
   //GET DATA FROM FRONTEND
   const { userName, email, fullName, password } = req.body;
+
+  logger.info("Register user request received", {userName, email, fullName, password});
 
   // Check if there is any empty field (new method some())
   if (
@@ -103,7 +106,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { email, userName, password } = req.body;
 
-  // console.log(email, userName, password);
+  logger.info("Login request received", { userName, email });
 
   if (!userName && !email) {
     throw new ApiError(400, "Required userName or email.");
@@ -114,12 +117,16 @@ const loginUser = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
+    
+    logger.warn("Login failed: user not found", { userName, email });
     throw new ApiError(404, "User does not exist.");
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
 
   if (!isPasswordValid) {
+
+    logger.warn("Login failed: invalid password", { userName, email, userId: user._id });
     throw new ApiError(401, "Invalid user credential.");
   }
 
@@ -129,6 +136,8 @@ const loginUser = asyncHandler(async (req, res) => {
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
+
+  logger.info("User logged in successfully", { userName, email, userId: user._id });
 
   const options = {
     httpOnly: true,
