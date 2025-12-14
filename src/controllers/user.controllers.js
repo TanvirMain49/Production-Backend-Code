@@ -143,12 +143,12 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
+        "User Logged in successfully",
         {
           user: loggedInUser,
           accessToken,
           refreshToken,
-        },
-        "User Logged in successfully"
+        }
       )
     );
 });
@@ -185,7 +185,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "User logged out successfully!"));
+    .json(new ApiResponse(200, "User logged out successfully!", {}));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -227,8 +227,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { accessToken, refreshToken: newRefreshToken },
-          "Access token refreshed"
+          "Access token refreshed",
+          { accessToken, refreshToken: newRefreshToken }
         )
       );
   } catch (error) {
@@ -260,14 +260,14 @@ const changePassword = asyncHandler(async (req, res)=>{
 
     return res
     .status(200)
-    .json(new ApiResponse(200, {}, "Password has been changed"));
+    .json(new ApiResponse(200, "Password has been changed", {}));
 
 });
 
 const getCurrentUser = asyncHandler(asyncHandler( async (req, res)=>{
     return res
     .status(200)
-    .json(new ApiResponse(200, req.user, "current user fetched successfully"))
+    .json(new ApiResponse(200, "current user fetched successfully", req.user))
 
 }))
 
@@ -291,7 +291,7 @@ const updateAccount = asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .json(new ApiResponse(200, user, "Account details successfully"))
+    .json(new ApiResponse(200, "Account details successfully", user))
 });
 
 const updateAvatar = asyncHandler(async(req, res)=>{
@@ -321,7 +321,7 @@ const updateAvatar = asyncHandler(async(req, res)=>{
 
     return res
     .status(200)
-    .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"));
+    .json(new ApiResponse(200, "Avatar updated successfully", updatedUser));
 });
 
 const updateCoverImage = asyncHandler(async(req, res)=>{
@@ -349,7 +349,7 @@ const updateCoverImage = asyncHandler(async(req, res)=>{
 
     return res
     .status(200)
-    .json(new ApiResponse(200, updatedUser, "Cover image updated successfully"));
+    .json(new ApiResponse(200, "Cover image updated successfully", updatedUser));
 });
 
 const getChannelProfile = asyncHandler(async(req, res)=>{
