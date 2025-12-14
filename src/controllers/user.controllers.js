@@ -29,7 +29,7 @@ const registerUser = asyncHandler(async (req, res) => {
   //GET DATA FROM FRONTEND
   const { userName, email, fullName, password } = req.body;
 
-  logger.info("Register user request received", {userName, email, fullName, password});
+  logger.info("Register user request received", {userName, email, fullName});
 
   // Check if there is any empty field (new method some())
   if (
@@ -43,6 +43,7 @@ const registerUser = asyncHandler(async (req, res) => {
     $or: [{ email }, { userName: userName.toLowerCase() }],
   });
   if (existedUser) {
+    logger.warn("Register failed: user with email and user name already exists", {userName, email});
     throw new ApiError(400, "User with this email or username already exists.");
   }
 
@@ -58,6 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   if (!avatarLocalPath) {
+    logger.warn("Register failed: Avatar local path not found", {userName, email})
     throw new ApiError(400, "Avatar Local Path Not Found!!.");
   }
 
@@ -66,6 +68,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const coverImage = await uploadCloudinary(coverImageLocalPath);
 
   if (!avatar) {
+    logger.warn("Register failed: Avatar Image not found.", {userName, email})
     throw new ApiError(400, "Avatar Image not found.");
   }
 
@@ -83,11 +86,14 @@ const registerUser = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
   if (!createdUser) {
+    logger.warn("Register failed: Something went wrong while registering user account.", {userName, email, userId: user._id})
     throw new ApiError(
       400,
       "Something went wrong while registering user account."
     );
   }
+
+  logger.info("Register user successfully", {userName, email, userId: user._id})
 
   return res
     .status(201)
@@ -117,7 +123,7 @@ const loginUser = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    
+
     logger.warn("Login failed: user not found", { userName, email });
     throw new ApiError(404, "User does not exist.");
   }
