@@ -169,14 +169,16 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const user = await User.findByIdAndUpdate(
+  logger.info("Logout request received", { userId });
+
+  await User.findByIdAndUpdate(
     userId,
     {
       /*It literally sets the field value to undefined in the document, 
             but MongoDB does not store undefined → it keeps the old value. 
-
             Code:
-            $set: { refreshToken: undefined }*/
+            $set: { refreshToken: undefined }
+      */
 
       //This tells MongoDB to delete that field, not "set it to undefined".
       $unset: { refreshToken: 1 },
@@ -186,7 +188,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
   );
 
-  console.log("User: ", user);
+  logger.info("User logged out successfully", { userId });
 
   const options = {
     httpOnly: true,
@@ -205,7 +207,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
     req.cookie?.refreshToken || req.body.refreshToken;
 
+  logger.info("incoming refresh token received");
+
   if (!incomingRefreshToken) {
+    logger.warn("Refresh access token failed: unauthorized access");
     throw new ApiError(401, "Unauthorized access.");
   }
 
@@ -217,10 +222,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     const user = await User.findById(decodedToken?._id);
     if (!user) {
+      logger.warn("Refresh access token failed: Invalid refreshToken.");
       throw new ApiError(401, "Invalid refreshToken.");
     }
 
     if (incomingRefreshToken !== user?.refreshToken) {
+      logger.warn("Refresh access token failed: Refresh token is expired.");
       throw new ApiError(401, "Refresh token is expired.");
     }
 
@@ -232,6 +239,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     const { accessToken, newRefreshToken } =
       await generateAccessTokenAndRefreshToken(user?._id);
+
+    logger.info("Refresh access token successfully");
 
     res
       .status(200)
