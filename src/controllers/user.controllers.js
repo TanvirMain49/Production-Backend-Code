@@ -146,8 +146,6 @@ const loginUser = asyncHandler(async (req, res) => {
         "User Logged in successfully",
         {
           user: loggedInUser,
-          accessToken,
-          refreshToken,
         }
       )
     );
@@ -476,9 +474,6 @@ const getWatchHistory = asyncHandler(async(req, res)=>{
       }
     }
   ])
-
-  console.log(user[0]);
-
 
   if(!user?.length){
     throw new ApiError(400, "User dose not exists!")
